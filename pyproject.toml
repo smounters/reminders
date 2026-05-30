@@ -1,0 +1,71 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "reminders-gtk"
+version = "0.1.0"
+description = "GTK reminder app with flexible scheduling"
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+requires-python = ">=3.10"
+authors = [
+    { name = "Serhii Mykhailovskyi", email = "sergio@smounters.com" },
+]
+keywords = ["gtk", "reminder", "notifications", "linux", "desktop"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: X11 Applications :: GTK",
+    "Intended Audience :: End Users/Desktop",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Desktop Environment",
+    "Topic :: Utilities",
+]
+dependencies = [
+    "APScheduler>=3.6,<4",
+    "python-dateutil>=2.8",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.5",
+    "pytest>=7",
+]
+
+[project.scripts]
+reminders-gtk = "reminders.app:main"
+
+[project.urls]
+Homepage = "https://github.com/smounters/reminders-gtk"
+Issues = "https://github.com/smounters/reminders-gtk/issues"
+
+[tool.setuptools.packages.find]
+include = ["reminders*"]
+exclude = ["tests*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+ignore = [
+    "E501",  # long lines handled by formatter
+    "B008",  # GTK widgets accept callable defaults
+]
+
+[tool.ruff.lint.per-file-ignores]
+# PyGObject requires `gi.require_version(...)` *before* importing from
+# `gi.repository`, so module-level imports cannot all sit at the top.
+"reminders/tray.py" = ["E402"]
+"reminders/windows/*.py" = ["E402"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"

@@ -1,0 +1,127 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+permissions:
+  contents: read
+
+jobs:
+  lint-and-unit:
+    name: Lint + unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dev dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install ruff pytest APScheduler "python-dateutil>=2.8"
+
+      - name: Lint (ruff check)
+        run: ruff check .
+
+      - name: Format check (ruff format)
+        run: ruff format --check .
+
+      - name: Run unit tests
+        run: pytest -q
+
+  build-deb:
+    name: Build .deb (debian:12)
+    runs-on: ubuntu-latest
+    container:
+      image: debian:12
+    steps:
+      - name: Install build deps
+        run: |
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            ca-certificates \
+            git \
+            build-essential \
+            debhelper \
+            dh-python \
+            pybuild-plugin-pyproject \
+            python3-all \
+            python3-setuptools \
+            devscripts \
+            fakeroot
+
+      - uses: actions/checkout@v4
+
+      - name: Build the package
+        run: |
+          dpkg-buildpackage -us -uc -b
+
+      - name: Collect artifacts
+        run: |
+          mkdir -p artifacts
+          cp ../reminders-gtk_*.deb artifacts/
+          cp ../reminders-gtk_*.changes artifacts/ || true
+          cp ../reminders-gtk_*.buildinfo artifacts/ || true
+
+      - name: Verify Depends does not pin a hard python3 version
+        run: |
+          set -e
+          deb_path=$(ls artifacts/reminders-gtk_*.deb | head -n1)
+          depends=$(dpkg-deb -f "$deb_path" Depends)
+          echo "Depends: $depends"
+          if echo "$depends" | grep -E 'python3 \(>= 3\.(1[2-9]|[2-9][0-9])' >/dev/null; then
+            echo "::error::python3 lower bound is too high: $depends"
+            exit 1
+          fi
+
+      - name: Upload .deb artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: reminders-gtk-deb
+          path: artifacts/*.deb
+          retention-days: 14
+
+  test-install:
+    name: Install matrix
+    needs: build-deb
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        image:
+          - debian:12
+          - debian:13
+          - ubuntu:22.04
+          - ubuntu:24.04
+    container:
+      image: ${{ matrix.image }}
+    steps:
+      - name: Prepare apt
+        run: |
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            ca-certificates
+
+      - name: Download .deb
+        uses: actions/download-artifact@v4
+        with:
+          name: reminders-gtk-deb
+          path: ./pkg
+
+      - name: Install the package
+        run: |
+          set -e
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            ./pkg/reminders-gtk_*.deb \
+            xvfb dbus-x11
+
+      - name: Selftest under xvfb + dbus
+        run: |
+          set -e
+          xvfb-run -a dbus-run-session -- reminders-gtk --selftest

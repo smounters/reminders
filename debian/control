@@ -1,0 +1,30 @@
+Source: reminders-gtk
+Section: utils
+Priority: optional
+Maintainer: Serhii Mykhailovskyi <sergio@smounters.com>
+Build-Depends: debhelper-compat (= 13),
+ dh-python,
+ python3-all,
+ pybuild-plugin-pyproject,
+ python3-setuptools
+Standards-Version: 4.6.2
+Homepage: https://github.com/smounters/reminders-gtk
+Rules-Requires-Root: no
+
+Package: reminders-gtk
+Architecture: all
+Depends: ${python3:Depends},
+ ${misc:Depends},
+ python3-gi,
+ gir1.2-gtk-3.0,
+ gir1.2-ayatanaappindicator3-0.1 | gir1.2-appindicator3-0.1,
+ gir1.2-notify-0.7,
+ python3-apscheduler,
+ python3-dateutil
+Description: GTK reminder app with flexible scheduling
+ Tray reminder application supporting one-time, interval and
+ calendar-based reminders with desktop notifications.
+ .
+ Lives in the system tray via AppIndicator (Ayatana with a fallback to
+ the legacy AppIndicator3), shows notifications through libnotify, and
+ stores reminders locally in SQLite.

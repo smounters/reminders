@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.smounters.Reminders</id>
+  <name>Reminders</name>
+  <summary>Tray reminder application with flexible scheduling</summary>
+  <summary xml:lang="ru">Трей-напоминалка с гибким расписанием</summary>
+  <metadata_license>FSFAP</metadata_license>
+  <project_license>Apache-2.0</project_license>
+  <developer_name>Serhii Mykhailovskyi</developer_name>
+  <description>
+    <p>
+      A small GTK application that lives in the system tray and shows
+      desktop notifications according to user-defined schedules: one-shot,
+      every N minutes/hours, on selected weekdays at specific times, or via a
+      cron expression.
+    </p>
+    <p xml:lang="ru">
+      Небольшое приложение GTK, которое живёт в системном трее и показывает
+      уведомления по гибкому расписанию: разовое, каждые N минут/часов, по
+      выбранным дням недели в заданное время или по cron-выражению.
+    </p>
+  </description>
+  <categories>
+    <category>Utility</category>
+  </categories>
+  <launchable type="desktop-id">com.smounters.Reminders.desktop</launchable>
+  <url type="homepage">https://github.com/smounters/reminders-gtk</url>
+  <url type="bugtracker">https://github.com/smounters/reminders-gtk/issues</url>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="0.1.0" date="2026-05-30">
+      <description>
+        <p>Initial release.</p>
+      </description>
+    </release>
+  </releases>
+</component>

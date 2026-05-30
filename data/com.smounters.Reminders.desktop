@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=Reminders
+GenericName=Reminders
+Comment=Tray reminder application with flexible scheduling
+Comment[ru]=Трей-напоминалка с гибким расписанием
+Exec=reminders-gtk
+Icon=com.smounters.Reminders
+Terminal=false
+Categories=Utility;
+StartupNotify=false
+StartupWMClass=com.smounters.Reminders
+Keywords=reminder;notification;schedule;alarm;todo;

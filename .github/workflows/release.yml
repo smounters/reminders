@@ -1,0 +1,138 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-deb:
+    name: Build .deb (debian:12) for tag
+    runs-on: ubuntu-latest
+    container:
+      image: debian:12
+    steps:
+      - name: Install build deps
+        run: |
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            ca-certificates \
+            git \
+            build-essential \
+            debhelper \
+            dh-python \
+            pybuild-plugin-pyproject \
+            python3-all \
+            python3-setuptools \
+            devscripts \
+            fakeroot
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set package version from tag
+        run: |
+          set -e
+          tag="${GITHUB_REF_NAME}"
+          version="${tag#v}"
+          export DEBEMAIL="sergio@smounters.com"
+          export DEBFULLNAME="Serhii Mykhailovskyi"
+          dch --newversion "${version}" --distribution stable \
+              "Release ${version}"
+
+      - name: Build the package
+        run: dpkg-buildpackage -us -uc -b
+
+      - name: Collect artifacts
+        run: |
+          mkdir -p artifacts
+          cp ../reminders-gtk_*.deb artifacts/
+
+      - name: Upload .deb artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: reminders-gtk-deb
+          path: artifacts/*.deb
+          retention-days: 14
+
+  test-install:
+    name: Install matrix
+    needs: build-deb
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        image:
+          - debian:12
+          - debian:13
+          - ubuntu:22.04
+          - ubuntu:24.04
+    container:
+      image: ${{ matrix.image }}
+    steps:
+      - name: Prepare apt
+        run: |
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            ca-certificates
+
+      - name: Download .deb
+        uses: actions/download-artifact@v4
+        with:
+          name: reminders-gtk-deb
+          path: ./pkg
+
+      - name: Install the package
+        run: |
+          set -e
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            ./pkg/reminders-gtk_*.deb \
+            xvfb dbus-x11
+
+      - name: Selftest under xvfb + dbus
+        run: |
+          set -e
+          xvfb-run -a dbus-run-session -- reminders-gtk --selftest
+
+  publish:
+    name: Publish GitHub Release
+    needs: [build-deb, test-install]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download .deb
+        uses: actions/download-artifact@v4
+        with:
+          name: reminders-gtk-deb
+          path: ./pkg
+
+      - name: Build release body
+        id: body
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          deb_file=$(ls pkg/reminders-gtk_*.deb | head -n1 | xargs basename)
+          {
+            echo "## Installation"
+            echo ""
+            echo "Download the \`.deb\` below and install it with apt so dependencies get resolved:"
+            echo ""
+            echo '```sh'
+            echo "sudo apt install ./${deb_file}"
+            echo '```'
+            echo ""
+            echo "Tested on Debian 12/13 and Ubuntu 22.04/24.04 (and therefore Linux Mint)."
+          } > body.md
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+
+      - name: Publish
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.body.outputs.tag }}
+          name: ${{ steps.body.outputs.tag }}
+          body_path: body.md
+          files: pkg/*.deb
