@@ -1,5 +1,10 @@
 #!/usr/bin/make -f
 export PYBUILD_NAME=reminders
 
+# Tests run in the CI lint-and-unit job and pull in pytest, APScheduler etc.
+# during the .deb build container that would add heavy Build-Depends without
+# providing extra signal — skip the pybuild test phase here.
+export PYBUILD_DISABLE=test
+
 %:
 	dh $@ --with python3 --buildsystem=pybuild
