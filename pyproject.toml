@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "reminders-gtk"
-version = "0.1.0"
+version = "0.1.1"
 description = "GTK reminder app with flexible scheduling"
 readme = "README.md"
 license = { file = "LICENSE" }
